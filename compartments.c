@@ -27,7 +27,7 @@ double gsl_ran_gaussian(const double sigma)
 
 int main(void)
 {
-  double R, S, W, L, dR, dS, dW, dL;
+  double I, A, S, F, dI, dA, dS, dF;
   double t, dt;
   double alpha;
   FILE *fp, *fp1;
@@ -39,18 +39,18 @@ int main(void)
   // sim1 -- normal -- how do cost and effect of sensing affect performance in different environments
   // for each experiment we'll output some sample time behaviour and a summary in the "long-term" limit  
   fp = fopen("sim-out.csv", "w");
-  fprintf(fp, "period,positive,delta,epsilon,t,alpha,R,S,W,L\n");
+  fprintf(fp, "period,positive,delta,epsilon,t,alpha,I,A,S,F\n");
 
   fp1 = fopen("sim-out-sum.csv", "w");
-  fprintf(fp1, "period,positive,delta,epsilon,W.ratio\n");
+  fprintf(fp1, "period,positive,delta,epsilon,S.ratio\n");
 
   // initial constants
   dt = 0.01;
   rho = sigma = 1;
-  // period and positive determine the environmental time series, with period (-1 = const, 0 = linear) and initial gradient (+ve/-ve)
+  // period and positive determine the environmental time series, with period (-1 = linear, 0 = const) and initial gradient (+ve/-ve)
   for(period = -1; period < 10; period++)
     {
-      for(positive = 0; positive < 2; positive++)
+      for(positive = -1; positive <= 1; positive+=2)
 	{
 	  // delta and epsilon are cost and effect of sensing respectively
 	  for(delta = 0; delta <= 1; delta += 0.1)
@@ -58,30 +58,30 @@ int main(void)
 	      for(epsilon = 0; epsilon <= 1; epsilon += 0.1)
 		{
 		  // simulate the system
-		  R = 1; S = W = L = 0;
+		  I = 1; A = S = F = 0;
 		  for(t = 0; t < 20; t += dt)
 		    {
 		      // environmental time series
 		      switch(period)
 			{
-			case -1: alpha = 0.5; break;
-			case 0: alpha = 0.1*t; break;
-			default: alpha = 0.5 + (positive == 0 ? -0.5 : 0.5)*sin(2*3.1416*t/period); break;
+			case 0: alpha = 0.5; break;
+			case -1: alpha = 0.1*t; break;
+			default: alpha = 0.5 + positive*0.5*sin(2*3.1416*t/period); break;
 			}
 
 		      // increments
-		      dR = dt*( (rho - rho*epsilon*(alpha-0.5))*S - (sigma + sigma*epsilon*(alpha-0.5))*R );
-		      dS = dt*( (sigma + sigma*epsilon*(alpha-0.5))*R - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*S );
-		      dW = dt*( (1.-delta)*alpha*S );
-		      dL = dt*( (1.-(1.-delta)*alpha)*S );
-		      R += dR; S += dS; W += dW; L += dL;
+		      dI = dt*( (rho - rho*epsilon*(alpha-0.5))*A - (sigma + sigma*epsilon*(alpha-0.5))*I );
+		      dA = dt*( (sigma + sigma*epsilon*(alpha-0.5))*I - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*A );
+		      dS = dt*( (1.-delta)*alpha*A );
+		      dF = dt*( (1.-(1.-delta)*alpha)*A );
+		      I += dI; A += dA; S += dS; F += dF;
 
 		      // output time series under set conditions
 		      if(delta == 0 && (epsilon == 0 || epsilon > 0.99) && (int)((t+dt)*10) > (int)(t*10))
-			fprintf(fp, "%i,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, t, alpha, R, S, W, L);
+			fprintf(fp, "%i,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, t, alpha, I, A, S, F);
 		    }
 		  // output summary for these params
-		  fprintf(fp1, "%i,%i,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, W/(W+L));
+		  fprintf(fp1, "%i,%i,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, S/(S+F));
 		}
 	    }
 	}
@@ -92,18 +92,18 @@ int main(void)
   // sim2 -- vary rho and sigma, the propensity to "rest" vs "seek"
   // for each experiment we'll output some sample time behaviour and a summary in the "long-term" limit  
   fp = fopen("sim2-out.csv", "w");
-  fprintf(fp, "period,positive,rho,sigma,epsilon,t,alpha,R,S,W,L\n");
+  fprintf(fp, "period,positive,rho,sigma,epsilon,t,alpha,I,A,S,F\n");
 
   fp1 = fopen("sim2-out-sum.csv", "w");
-  fprintf(fp1, "period,positive,rho,sigma,epsilon,W.ratio\n");
+  fprintf(fp1, "period,positive,rho,sigma,epsilon,S.ratio\n");
 
   // initial constants
   dt = 0.01;
   delta = 0;
-  // period and positive determine the environmental time series, with period (-1 = const, 0 = linear) and initial gradient (+ve/-ve)
+  // period and positive determine the environmental time series, with period (-1 = linear, 0 = const) and initial gradient (+ve/-ve)
   for(period = -1; period < 10; period++)
     {
-      for(positive = 0; positive < 2; positive++)
+      for(positive = -1; positive <= 1; positive+=2)
 	{
 	  // rho is flux from seeking to resting; sigma is flux from resting to seeking
 	  for(rho = 0.01; rho < 1; rho *= 2)
@@ -113,31 +113,31 @@ int main(void)
 		  for(epsilon = 0; epsilon <= 1; epsilon++)
 		    {
 		      // simulate the system -- for longer times this time, we'll check post hoc for convergence
-		      R = 1; S = W = L = 0;
+		      I = 1; A = S = F = 0;
 		      for(t = 0; t < 200; t += dt)
 			{
 			  // environmental time series
 			  switch(period)
 			    {
-			    case -1: alpha = 0.5; break;
-			    case 0: alpha = 0.1*t; break;
-			    default: alpha = 0.5 + (positive == 0 ? -0.5 : 0.5)*sin(2*3.1416*t/period); break;
+			    case 0: alpha = 0.5; break;
+			    case -1: alpha = 0.1*t; break;
+			    default: alpha = 0.5 + positive*0.5*sin(2*3.1416*t/period); break;
 			    }
 
 			  // increments
-			  dR = dt*( (rho - rho*epsilon*(alpha-0.5))*S - (sigma + sigma*epsilon*(alpha-0.5))*R );
-			  dS = dt*( (sigma + sigma*epsilon*(alpha-0.5))*R - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*S );
-			  dW = dt*( (1.-delta)*alpha*S );
-			  dL = dt*( (1.-(1.-delta)*alpha)*S );
-			  R += dR; S += dS; W += dW; L += dL;
+			  dI = dt*( (rho - rho*epsilon*(alpha-0.5))*A - (sigma + sigma*epsilon*(alpha-0.5))*I );
+			  dA = dt*( (sigma + sigma*epsilon*(alpha-0.5))*I - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*A );
+			  dS = dt*( (1.-delta)*alpha*A );
+			  dF = dt*( (1.-(1.-delta)*alpha)*A );
+			  I += dI; A += dA; S += dS; F += dF;
 
 			  // output time series under set conditions
 			  if(rho > 0.6 && sigma == 0.01 && (int)((t+dt)*10) > (int)(t*10))
-			    fprintf(fp, "%i,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", period, positive, rho, sigma, epsilon, t, alpha, R, S, W, L);
+			    fprintf(fp, "%i,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", period, positive, rho, sigma, epsilon, t, alpha, I, A, S, F);
 
 			}
 		      // output summary for these params
-		      fprintf(fp1, "%i,%i,%.3e,%.3e,%.3e,%.3e\n", period, positive, rho, sigma, epsilon, W/(W+L));
+		      fprintf(fp1, "%i,%i,%.3e,%.3e,%.3e,%.3e\n", period, positive, rho, sigma, epsilon, S/(S+F));
 		    }
 		}
 	    }
@@ -149,18 +149,18 @@ int main(void)
   // sim3 -- same as sim1, but with different rho and sigma for sanity
   // for each experiment we'll output some sample time behaviour and a summary in the "long-term" limit  
   fp = fopen("sim3-out.csv", "w");
-  fprintf(fp, "period,positive,delta,epsilon,t,alpha,R,S,W,L\n");
+  fprintf(fp, "period,positive,delta,epsilon,t,alpha,I,A,S,F\n");
 
   fp1 = fopen("sim3-out-sum.csv", "w");
-  fprintf(fp1, "period,positive,delta,epsilon,W.ratio\n");
+  fprintf(fp1, "period,positive,delta,epsilon,S.ratio\n");
 
   // initial constants -- changed relative to sim1
   dt = 0.01;
   rho = 0.1; sigma = 0.6;
-  // period and positive determine the environmental time series, with period (-1 = const, 0 = linear) and initial gradient (+ve/-ve)
+  // period and positive determine the environmental time series, with period (-1 = linear, 0 = const) and initial gradient (+ve/-ve)
   for(period = -1; period < 10; period++)
     {
-      for(positive = 0; positive < 2; positive++)
+      for(positive = -1; positive <= 1; positive+=2)
 	{
 	  // delta and epsilon are cost and effect of sensing respectively
 	  for(delta = 0; delta <= 1; delta += 0.1)
@@ -168,30 +168,30 @@ int main(void)
 	      for(epsilon = 0; epsilon <= 1; epsilon += 0.1)
 		{
 		  // simulate the system -- for longer times this time, we'll check post hoc for convergence
-		  R = 1; S = W = L = 0;
+		  I = 1; A = S = F = 0;
 		  for(t = 0; t < 200; t += dt)
 		    {
 		      // environmental time series
 		      switch(period)
 			{
-			case -1: alpha = 0.5; break;
-			case 0: alpha = 0.1*t; break;
-			default: alpha = 0.5 + (positive == 0 ? -0.5 : 0.5)*sin(2*3.1416*t/period); break;
+			case 0: alpha = 0.5; break;
+			case -1: alpha = 0.1*t; break;
+			default: alpha = 0.5 + positive*0.5*sin(2*3.1416*t/period); break;
 			}
 
 		      // increments
-		      dR = dt*( (rho - rho*epsilon*(alpha-0.5))*S - (sigma + sigma*epsilon*(alpha-0.5))*R );
-		      dS = dt*( (sigma + sigma*epsilon*(alpha-0.5))*R - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*S );
-		      dW = dt*( (1.-delta)*alpha*S );
-		      dL = dt*( (1.-(1.-delta)*alpha)*S );
-		      R += dR; S += dS; W += dW; L += dL;
+		      dI = dt*( (rho - rho*epsilon*(alpha-0.5))*A - (sigma + sigma*epsilon*(alpha-0.5))*I );
+		      dA = dt*( (sigma + sigma*epsilon*(alpha-0.5))*I - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*A );
+		      dS = dt*( (1.-delta)*alpha*A );
+		      dF = dt*( (1.-(1.-delta)*alpha)*A );
+		      I += dI; A += dA; S += dS; F += dF;
 
 		      // output time series under set conditions
 		      if(delta == 0 && (epsilon == 0 || epsilon > 0.99) && (int)((t+dt)*10) > (int)(t*10))
-			fprintf(fp, "%i,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, t, alpha, R, S, W, L);
+			fprintf(fp, "%i,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, t, alpha, I, A, S, F);
 		    }
 		  // output summary for these params
-		  fprintf(fp1, "%i,%i,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, W/(W+L));
+		  fprintf(fp1, "%i,%i,%.3e,%.3e,%.3e\n", period, positive, delta, epsilon, S/(S+F));
 		}
 	    }
 	}
@@ -202,10 +202,10 @@ int main(void)
   // sim4 -- stochastic environment with different rates of variance increase
   // for each experiment we'll output some sample time behaviour and a summary in the "long-term" limit  
   fp = fopen("sim4-out.csv", "w");
-  fprintf(fp, "kernel,sample,delta,epsilon,t,alpha,R,S,W,L\n");
+  fprintf(fp, "kernel,sample,delta,epsilon,t,alpha,I,A,S,F\n");
 
   fp1 = fopen("sim4-out-sum.csv", "w");
-  fprintf(fp1, "kernel,sample,delta,epsilon,W.ratio\n");
+  fprintf(fp1, "kernel,sample,delta,epsilon,S.ratio\n");
 
   // initial constants 
   dt = 0.01;
@@ -222,7 +222,7 @@ int main(void)
 	      for(epsilon = 0; epsilon <= 1; epsilon += 0.1)
 		{
 		  // simulate the system 
-		  R = 1; S = W = L = 0;
+		  I = 1; A = S = F = 0;
 		  alpha = 0.5;
 		  for(t = 0; t < 20; t += dt)
 		    {
@@ -232,18 +232,18 @@ int main(void)
 		      if(alpha > 1) alpha = 1;
 
 		      // increments
-		      dR = dt*( (rho - rho*epsilon*(alpha-0.5))*S - (sigma + sigma*epsilon*(alpha-0.5))*R );
-		      dS = dt*( (sigma + sigma*epsilon*(alpha-0.5))*R - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*S );
-		      dW = dt*( (1.-delta)*alpha*S );
-		      dL = dt*( (1.-(1.-delta)*alpha)*S );
-		      R += dR; S += dS; W += dW; L += dL;
+		      dI = dt*( (rho - rho*epsilon*(alpha-0.5))*A - (sigma + sigma*epsilon*(alpha-0.5))*I );
+		      dA = dt*( (sigma + sigma*epsilon*(alpha-0.5))*I - ((1.-delta)*alpha + (1.-(1.-delta)*alpha) + (rho - rho*epsilon*(alpha-0.5)))*A );
+		      dS = dt*( (1.-delta)*alpha*A );
+		      dF = dt*( (1.-(1.-delta)*alpha)*A );
+		      I += dI; A += dA; S += dS; F += dF;
 
 		      // output time series under set conditions
 		      if(delta == 0 && (epsilon == 0 || epsilon > 0.99) && (int)((t+dt)*10) > (int)(t*10))
-			fprintf(fp, "%.3e,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", kernel, sample, delta, epsilon, t, alpha, R, S, W, L);
+			fprintf(fp, "%.3e,%i,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e,%.3e\n", kernel, sample, delta, epsilon, t, alpha, I, A, S, F);
 		    }
 		  // output summary for these params
-		  fprintf(fp1, "%.3e,%i,%.3e,%.3e,%.3e\n", kernel, sample, delta, epsilon, W/(W+L));
+		  fprintf(fp1, "%.3e,%i,%.3e,%.3e,%.3e\n", kernel, sample, delta, epsilon, S/(S+F));
 		}
 	    }
 	}
