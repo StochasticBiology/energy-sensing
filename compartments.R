@@ -22,6 +22,13 @@ g.1.d = ggplot(df.ts[df.ts$period %in% c(0, 2, 8) & df.ts$positive==1,]) +
   facet_grid(period~epsilon) + theme_light() + ylab("Value") +
   ggtitle("S (green), F (red), alpha (grey) with epsilon (columns) and alpha period (rows)")
 
+g.1.f = ggplot(df.ts[df.ts$period %in% c(0, 2, 8) & df.ts$positive==-1,]) + 
+  geom_line(aes(x=t,y=S), color="green") + 
+  geom_line(aes(x=t,y=F), color="red") + 
+  geom_line(aes(x=t,y=alpha), color="grey") + 
+  facet_grid(period~epsilon) + theme_light() + ylab("Value") +
+  ggtitle("S (green), F (red), alpha (grey) with epsilon (columns) and alpha period (rows)")
+
 df.sum = read.csv("sim-out-sum.csv")
 
 # summaries of performance
@@ -55,7 +62,9 @@ dev.off()
 
 png("sim-1-all.png", width=1200*sf, height=600*sf, res=72*sf)
 #print(ggarrange(g.1.d, ggarrange(g.1.b, g.1.c, g.1.e, nrow = 1, labels = c("B", "C", "D")), labels = c("A", ""), nrow=2))
-print(ggarrange(g.1.d, g.1.b, g.1.c, g.1.e, nrow = 2, ncol=2, labels = c("A", "B", "C", "D")))
+print(ggarrange(ggarrange(g.1.d, g.1.f, nrow=1, labels=c("A", "B")),
+                ggarrange(g.1.b, g.1.c, g.1.e, nrow = 1, labels = c("C", "D", "E")),
+                nrow=2))
 dev.off()
 
 ### sim2 -- varying rho and sigma (propensity for resting vs seeking)
@@ -85,7 +94,7 @@ g.2.d = ggplot(df.sum[df.sum$period %in% c(8),], aes(x=rho,y=sigma,z=S.ratio)) +
   ggtitle("S with rho and sigma for different env (rows) and epsilon (cols)")
 
 
-png("sim-2-summary.png", width=1200*sf, height=400*sf, res=72*sf)
+png("sim-2-summary.png", width=1000*sf, height=400*sf, res=72*sf)
 print(ggarrange(g.2.c, g.2.d, labels=c("A", "B"), nrow=1))
 dev.off()
 
@@ -132,7 +141,7 @@ g.4.a = ggplot(df.ts[df.ts$sample < 5,]) +
 df.sum = read.csv("sim4-out-sum.csv")
 
 g.4.b = ggplot(df.sum[df.sum$delta %in% c(0,0.5,0.9),], aes(x=factor(kernel),y=S.ratio,fill=factor(epsilon))) + 
-  geom_boxplot()+ facet_grid(~delta, scales="free_y") + theme_light() +
+  geom_boxplot()+ facet_grid(~delta, scales="free_x") + theme_light() +
   ggtitle("S with epsilon by random kernel width and delta (columns)")
 
 png("sim-4-both.png", width=800*sf, height=600*sf, res=72*sf)
