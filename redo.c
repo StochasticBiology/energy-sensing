@@ -64,7 +64,7 @@ int main(void)
   }
 
   fp = fopen("redo-out.csv", "w");
-  fprintf(fp, "beta,omega,phi,k0,kp,ki,kd,W,L,delta\n");
+  fprintf(fp, "beta,omega,phi,k0,kp,ki,kd,W,L,delta,tend\n");
   // loop through sensing cost
   for(beta = 0; beta < 0.2; beta += 0.05)
     {
