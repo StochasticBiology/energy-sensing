@@ -11,6 +11,7 @@ plot.time.series = function(tdf) {
     geom_line(aes(x=t, y=stateL), color="red") +
     geom_line(aes(x=t, y=stateI), color="lightgreen") +
     geom_line(aes(x=t, y=stateA), color="darkgreen") +
+      xlim(0,100) +
       theme_light() )
 }
 
