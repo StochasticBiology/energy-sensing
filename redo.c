@@ -17,51 +17,84 @@ double mymax(double x, double y)
   return y;
 }
 
+// simulate an instance of the system
+void Simulate(double k0, double kp, double ki, double kd, double beta, double omega, double phi, double *W, double *L, double *rdelta, double *tend, int output, char *fname)
+{
+  double stateI, stateA, stateW, stateL;  // state of system
+  double dstateIdt, dstateAdt, dstateWdt, dstateLdt;   // d/dt
+  double rho, sigma, kappa1, kappa2, delta;   // rate consts and associated quantities
+  double t, dt = 0.01;
+  FILE *fp;
+  double env;
+  double diff, prevdiff, ddiffdt, intdiffdt;  // used in PID calcs
+ 
+  if(output)
+    {
+      fp = fopen(fname, "w");
+      fprintf(fp, "t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2\n");
+    }
+      
+  // initialise state
+  stateI = 1; stateA = stateW = stateL = 0;
+  //delta = 0;
+  // fix a delta value for this parameterisation
+  delta = beta*(k0 + kp + ki + kd);
+  // euler time simulation
+  for(t = 0; t < 100 && (stateI + stateA) > 1e-6; t += dt)
+    {
+      // current environments
+      env = envfn(t, omega, phi);
+      // environment statistics for PID
+      diff = env-0.5;
+      ddiffdt = (t == 0 ? 0 : (diff-prevdiff)/dt);
+      intdiffdt = (t == 0 ? 0 : intdiffdt + diff*dt);
+
+      // rate constants
+      sigma = mymax(0, k0 + kp*diff + ki*intdiffdt + kd*ddiffdt);
+      rho = mymax(0, k0 - kp*diff - ki*intdiffdt - kd*ddiffdt);
+      kappa1 = mymax(0, env*(1.-delta));
+      kappa2 = mymax(0, 1.-env*(1.-delta));
+      //delta = delta + beta*(k0 + kp + ki + kd)*dt;
+
+      // time derivatives
+      dstateIdt = dt* ( -stateI*sigma + stateA*rho );
+      dstateAdt = dt* (  stateI*sigma - stateA*rho - stateA*(kappa1+kappa2) );
+      dstateWdt = dt* (  stateA*kappa1 );
+      dstateLdt = dt* (  stateA*kappa2 );
+
+      // update state and environment statistic
+      stateI += dstateIdt;
+      stateA += dstateAdt;
+      stateW += dstateWdt;
+      stateL += dstateLdt;
+      prevdiff = diff;
+
+      if(output)
+	{
+	  fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2);
+	}
+
+    }
+  *W = stateW; *L = stateL; *rdelta = delta; *tend = t;
+}
+
 int main(void)
 {
   double beta, omega, phi;  // environment and cost
   double k0, kp, ki, kd;    // sensing parameters
-  double stateI, stateA, stateW, stateL;  // state of system
-  double dstateIdt, dstateAdt, dstateWdt, dstateLdt;   // d/dt
-  double rho, sigma, kappa1, kappa2, delta;   // rate consts and associated quantities
-  double env;
-  double diff, prevdiff, ddiffdt, intdiffdt;  // used in PID calcs
-  double t, dt = 0.01;
+  double tomega;
+  double stateL, stateW, delta, tend;
   FILE *fp;
 
-  // test case outputting a time series
-  if(0) {
-    beta = 0; omega = 1; phi = 2.5; k0 = 0.25, kp = 0.75, ki = 0.75, kd = 1;
-  
-    stateI = 1; stateA = stateW = stateL = 0;
-    //delta = 0;
-    delta = beta*(k0 + kp + ki + kd);
-    for(t = 0; t < 100; t += dt)
-      {
-	env = envfn(t, omega, phi);
-	diff = env-0.5;
-	ddiffdt = (t == 0 ? 0 : (diff-prevdiff)/dt);
-	intdiffdt = (t == 0 ? 0 : intdiffdt + diff*dt);
-	sigma = mymax(0, k0 + kp*diff + ki*intdiffdt + kd*ddiffdt);
-	rho = mymax(0, k0 - kp*diff - ki*intdiffdt - kd*ddiffdt);
-	kappa1 = mymax(0, env*(1.-delta));
-	kappa2 = mymax(0, 1.-env*(1.-delta));
-	//delta = delta + beta*(k0 + kp + ki + kd)*dt;
-	dstateIdt = dt* ( -stateI*sigma + stateA*rho );
-	dstateAdt = dt* (  stateI*sigma - stateA*rho - stateA*(kappa1+kappa2) );
-	dstateWdt = dt* (  stateA*kappa1 );
-	dstateLdt = dt* (  stateA*kappa2 );
-	stateI += dstateIdt;
-	stateA += dstateAdt;
-	stateW += dstateWdt;
-	stateL += dstateLdt;
-	prevdiff = diff;
-	printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2);
-      }
-    printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", beta, omega, phi, k0, kp, ki, kd, stateW, stateL, delta);
-
-    return 0;
-  }
+  // collections of test cases outputting time series
+  beta = 0; omega = 1; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
+  Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-1.csv");
+  beta = 0; omega = 0; phi = 2.5; k0 = 1, kp = 0; ki = 0.0; kd = 1;
+  Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0a.csv");
+  beta = 0; omega = 1; phi = 2.5; k0 = 1, kp = 0; ki = 0.0; kd = 1;
+  Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0b.csv");
+  beta = 0; omega = 1; phi = 0; k0 = 1, kp = 0; ki = 0.0; kd = 1;
+  Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0c.csv");
 
   fp = fopen("redo-out.csv", "w");
   fprintf(fp, "beta,omega,phi,k0,kp,ki,kd,W,L,delta,tend\n");
@@ -69,8 +102,9 @@ int main(void)
   for(beta = 0; beta < 0.2; beta += 0.05)
     {
       // loop through environmental frequency
-      for(omega = 0; omega < 5; omega ++)
+      for(tomega = 0.02; tomega < 5; tomega *= 5)
 	{
+	  if(tomega == 0.02) omega = 0; else omega = tomega;
 	  // loop through environmental phase
 	  for(phi = 0; phi < 2*PI; phi += 0.5)
 	    {
@@ -83,48 +117,14 @@ int main(void)
 			{
 			  for(kd = 0; kd <= 1; kd += 0.25)
 			    {
-			      // initialise state
-			      stateI = 1; stateA = stateW = stateL = 0;
-			      //delta = 0;
-			      // fix a delta value for this parameterisation
-			      delta = beta*(k0 + kp + ki + kd);
-			      // euler time simulation
-			      for(t = 0; t < 100 && (stateI + stateA) > 1e-6; t += dt)
-				{
-				  // current environments
-				  env = envfn(t, omega, phi);
-				  // environment statistics for PID
-				  diff = env-0.5;
-				  ddiffdt = (t == 0 ? 0 : (diff-prevdiff)/dt);
-				  intdiffdt = (t == 0 ? 0 : intdiffdt + diff*dt);
-
-				  // rate constants
-				  sigma = mymax(0, k0 + kp*diff + ki*intdiffdt + kd*ddiffdt);
-				  rho = mymax(0, k0 - kp*diff - ki*intdiffdt - kd*ddiffdt);
-				  kappa1 = mymax(0, env*(1.-delta));
-				  kappa2 = mymax(0, 1.-env*(1.-delta));
-				  //delta = delta + beta*(k0 + kp + ki + kd)*dt;
-
-				  // time derivatives
-				  dstateIdt = dt* ( -stateI*sigma + stateA*rho );
-				  dstateAdt = dt* (  stateI*sigma - stateA*rho - stateA*(kappa1+kappa2) );
-				  dstateWdt = dt* (  stateA*kappa1 );
-				  dstateLdt = dt* (  stateA*kappa2 );
-
-				  // update state and environment statistic
-				  stateI += dstateIdt;
-				  stateA += dstateAdt;
-				  stateW += dstateWdt;
-				  stateL += dstateLdt;
-				  prevdiff = diff;
-				}
-			      fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", beta, omega, phi, k0, kp, ki, kd, stateW, stateL, delta, t);
+			      Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 0, "tmp");
+			      fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", beta, tomega, phi, k0, kp, ki, kd, stateW, stateL, delta, tend);
 			    }
 			}
 		    }
 		}
 	    }
-	  printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", beta, omega, phi, k0, kp, ki, kd, stateW, stateL, delta);
+	  printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", beta, tomega, phi, k0, kp, ki, kd, stateW, stateL, delta);
 	}
     }
   fclose(fp);
