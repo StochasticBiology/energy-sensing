@@ -19,12 +19,14 @@ tdf.0a = read.csv("example-0a.csv")
 tdf.0b = read.csv("example-0b.csv")
 tdf.0c = read.csv("example-0c.csv")
 tdf.1 = read.csv("example-1.csv")
+tdf.2 = read.csv("example-2.csv")
 
 ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat"), 
           plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase"),
           plot.time.series(tdf.0c) + ggtitle("No sensing, good phase"),
-          plot.time.series(tdf.1) + ggtitle("Sensing, bad phase"), 
-          nrow=2, ncol=2)
+          plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase"), 
+          plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase"),
+          nrow=3, ncol=2)
 
 ###### across parameterisations
 
