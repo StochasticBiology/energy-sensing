@@ -7,10 +7,10 @@ library(dplyr)
 plot.time.series = function(tdf) {
   return(ggplot(tdf) + 
     geom_line(aes(x=t, y=env), color="grey") +
-    geom_line(aes(x=t, y=stateW), color="blue") +
+    geom_line(aes(x=t, y=stateW), color="darkgreen") +
     geom_line(aes(x=t, y=stateL), color="red") +
-    geom_line(aes(x=t, y=stateI), color="lightgreen") +
-    geom_line(aes(x=t, y=stateA), color="darkgreen") +
+    geom_line(aes(x=t, y=stateI), color="blue") +
+    geom_line(aes(x=t, y=stateA), color="orange") +
       xlim(0,100) +
       theme_light() )
 }
@@ -21,12 +21,22 @@ tdf.0c = read.csv("example-0c.csv")
 tdf.1 = read.csv("example-1.csv")
 tdf.2 = read.csv("example-2.csv")
 
-ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat"), 
+bank = ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat"), 
           plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase"),
           plot.time.series(tdf.0c) + ggtitle("No sensing, good phase"),
           plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase"), 
           plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase"),
           nrow=3, ncol=2)
+
+xmax = 100
+png("bank.png", width=500, height=1300)
+ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat") + xlim(0,xmax), 
+          plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase") + xlim(0,xmax),
+          plot.time.series(tdf.0c) + ggtitle("No sensing, good phase") + xlim(0,xmax),
+          plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase") + xlim(0,xmax), 
+          plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase") + xlim(0,xmax),
+          nrow=5)
+dev.off()
 
 ###### across parameterisations
 

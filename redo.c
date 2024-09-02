@@ -85,19 +85,23 @@ int main(void)
   double tomega;
   double stateL, stateW, delta, tend;
   FILE *fp;
+  double testomega = 1;
 
+  //testomega = 2*PI;
+  
   // collections of test cases outputting time series
   beta = 0; omega = 0; phi = 2.5; k0 = 1, kp = 0; ki = 0.0; kd = 0;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0a.csv");
-  beta = 0; omega = 1; phi = 2.5; k0 = 1, kp = 0; ki = 0.0; kd = 0;
+  beta = 0; omega = testomega; phi = 2.5; k0 = 1, kp = 0; ki = 0.0; kd = 0;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0b.csv");
-  beta = 0; omega = 1; phi = 0; k0 = 1, kp = 0; ki = 0.0; kd = 0;
+  beta = 0; omega = testomega; phi = 0; k0 = 1, kp = 0; ki = 0.0; kd = 0;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0c.csv");
-  beta = 0; omega = 1; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
+  beta = 0; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-1.csv");
-  beta = 0.1; omega = 1; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
+  beta = 0.1; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-2.csv");
 
+  return 0;
   fp = fopen("redo-out.csv", "w");
   fprintf(fp, "beta,omega,phi,k0,kp,ki,kd,W,L,delta,tend\n");
   // loop through sensing cost
