@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#define _RK
+
 #define PI 3.14159
 
 // environmental function (nutrient available) non-negative sine wave
@@ -38,7 +40,9 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
   stateI = 1; stateA = stateW = stateL = 0;
   //delta = 0;
   // fix a delta value for this parameterisation
+  #ifdef _IGJ
   delta = beta*(k0 + kp + ki + kd);
+  #endif
   // euler time simulation
   for(t = 0; t < 100 && (stateI + stateA) > 1e-6; t += dt)
     {
@@ -52,6 +56,9 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
       // rate constants
       sigma = mymax(0, k0 + kp*diff + ki*intdiffdt + kd*ddiffdt);
       rho = mymax(0, k0 - kp*diff - ki*intdiffdt - kd*ddiffdt);
+      #ifdef _RK
+      delta = mymax(0, beta*(kp*diff + ki*intdiffdt + kd*ddiffdt));
+      #endif
       kappa1 = mymax(0, env*(1.-delta));
       kappa2 = mymax(0, 1.-env*(1.-delta));
       //delta = delta + beta*(k0 + kp + ki + kd)*dt;
@@ -98,7 +105,7 @@ int main(void)
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-0c.csv");
   beta = 0; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-1.csv");
-  beta = 0.1; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
+  beta = 10; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-2.csv");
 
   return 0;

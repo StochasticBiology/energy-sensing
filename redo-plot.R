@@ -3,12 +3,13 @@ library(ggpubr)
 library(dplyr)
 
 #### some specific examples
+# to compare with RK, red is good, green is bad
 
 plot.time.series = function(tdf) {
   return(ggplot(tdf) + 
     geom_line(aes(x=t, y=env), color="grey") +
-    geom_line(aes(x=t, y=stateW), color="darkgreen") +
-    geom_line(aes(x=t, y=stateL), color="red") +
+    geom_line(aes(x=t, y=stateW), color="red") +
+    geom_line(aes(x=t, y=stateL), color="darkgreen") +
     geom_line(aes(x=t, y=stateI), color="blue") +
     geom_line(aes(x=t, y=stateA), color="orange") +
       xlim(0,100) +
@@ -31,8 +32,8 @@ bank = ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat"),
 xmax = 100
 png("bank.png", width=500, height=1300)
 ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat") + xlim(0,xmax), 
-          plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase") + xlim(0,xmax),
           plot.time.series(tdf.0c) + ggtitle("No sensing, good phase") + xlim(0,xmax),
+          plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase") + xlim(0,xmax),
           plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase") + xlim(0,xmax), 
           plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase") + xlim(0,xmax),
           nrow=5)
