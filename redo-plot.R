@@ -41,10 +41,12 @@ dev.off()
 
 ###### across parameterisations
 
+# read in one or the other variant of the model
 df = read.csv("redo-out.csv")
+#df = read.csv("redo-out-rk.csv")
 
 # first focus on the case with no sensing cost
-tdf = df[df$beta == 0,]
+tdf = df[df$beta == 0.,]
 tdf[tdf$k0==1 & tdf$kp==0 & tdf$ki==0 & tdf$kd==0,]
 # take a subsample of results for processing
 sub = tdf[sample(1:nrow(tdf), 10000),]
@@ -54,6 +56,10 @@ optimal_params <- sub %>%
   group_by(phi, omega) %>%          
   slice_max(W, with_ties = FALSE) %>% 
   ungroup()   
+
+# plot for comparison with RK
+sub.df = optimal_params
+ggplot(sub.df, aes(x=phi, y=log(omega), fill=W)) + geom_tile()
 
 # get the mean and sd of W for each parameter set, across environments
 param_fitness_stats <- sub %>%
