@@ -108,8 +108,12 @@ int main(void)
   beta = 10; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-2.csv");
 
-  return 0;
-  fp = fopen("redo-out.csv", "w");
+  //  return 0;
+  #ifdef _RK
+    fp = fopen("redo-out-rk.csv", "w");
+  #else
+    fp = fopen("redo-out.csv", "w");
+  #endif
   fprintf(fp, "beta,omega,phi,k0,kp,ki,kd,W,L,delta,tend\n");
   // loop through sensing cost
   for(beta = 0; beta < 0.2; beta += 0.05)
