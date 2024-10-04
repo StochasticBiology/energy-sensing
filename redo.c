@@ -119,7 +119,7 @@ int main(void)
   for(beta = 0; beta < 0.2; beta += 0.05)
     {
       // loop through environmental frequency
-      for(tomega = 0.02; tomega < 5; tomega *= 5)
+      for(tomega = 0.02; tomega < 5; tomega *= 2)
 	{
 	  if(tomega == 0.02) omega = 0; else omega = tomega;
 	  // loop through environmental phase
