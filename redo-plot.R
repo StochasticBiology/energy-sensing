@@ -22,12 +22,23 @@ tdf.0c = read.csv("example-0c.csv")
 tdf.1 = read.csv("example-1.csv")
 tdf.2 = read.csv("example-2.csv")
 
+wdf = tdf.0b
+rho = sigma = 1
+ips = 1 + rho + sigma;
+
+lambda1 = 0.5*( -ips + sqrt(ips*ips - 4*(sigma+rho)) );
+lambda2 = 0.5*( -ips - sqrt(ips*ips - 4*(sigma+rho)) );
+c1 = 1. / ( rho/(sigma+lambda1) - rho/(sigma+lambda2) );
+c2 = -c1;
+
 bank = ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat"), 
           plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase"),
           plot.time.series(tdf.0c) + ggtitle("No sensing, good phase"),
           plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase"), 
           plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase"),
           nrow=3, ncol=2)
+
+plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase")
 
 xmax = 100
 png("bank.png", width=500, height=1300)
@@ -43,7 +54,7 @@ dev.off()
 
 # read in one or the other variant of the model
 df = read.csv("redo-out.csv")
-#df = read.csv("redo-out-rk.csv")
+df = read.csv("redo-out-rk.csv")
 
 # first focus on the case with no sensing cost
 tdf = df[df$beta == 0.,]

@@ -5,6 +5,25 @@
 
 #define PI 3.14159
 
+double closedform(double t, double omega, double phi, double sigma, double rho)
+{
+  double c1, c2, lambda1, lambda2;
+  double ips = 1 + rho + sigma;
+  double W;
+  
+  lambda1 = 0.5*( -ips + sqrt(ips*ips - 4*(sigma+rho)) );
+  lambda2 = 0.5*( -ips - sqrt(ips*ips - 4*(sigma+rho)) );
+  c1 = 1. / ( rho/(sigma+lambda1) - rho/(sigma+lambda2) );
+  c2 = -c1;
+
+  W = 0;
+  W += 0.5*(c1/lambda1 * exp(lambda1*t) + c2/lambda2 * exp(lambda2*t));
+  W += 0.5*( c1*exp(lambda1*t)/(lambda1*lambda1+omega*omega) * lambda1*sin(omega*t + phi) - omega*cos(omega*t+phi));
+  W += 0.5*( c2*exp(lambda2*t)/(lambda2*lambda2+omega*omega) * lambda2*sin(omega*t + phi) - omega*cos(omega*t+phi));
+
+  return W;
+}
+
 // environmental function (nutrient available) non-negative sine wave
 double envfn(double t, double omega, double phi)
 {
@@ -33,7 +52,7 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
   if(output)
     {
       fp = fopen(fname, "w");
-      fprintf(fp, "t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2\n");
+      fprintf(fp, "t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2, cfW\n");
     }
       
   // initialise state
@@ -78,7 +97,7 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
 
       if(output)
 	{
-	  fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2);
+	  fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2, closedform(t, omega, phi, k0, k0));
 	}
 
     }
