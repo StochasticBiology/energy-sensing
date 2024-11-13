@@ -27,8 +27,12 @@ double closedform(double t, double omega, double phi, double sigma, double rho)
 // environmental function (nutrient available) non-negative sine wave
 double envfn(double t, double omega, double phi)
 {
-  if(omega == 0) return 0.5;
+  // if(omega == 0) return 0.5;
+  #ifdef _RK
   return 0.5+0.5*sin(omega*t + phi);
+  #else
+  return 0.5+0.5*sin(omega*t + phi);
+  #endif
 }
 
 // return max of two values (used for thresholding a zero)
@@ -135,12 +139,14 @@ int main(void)
   #endif
   fprintf(fp, "beta,omega,phi,k0,kp,ki,kd,W,L,delta,tend\n");
   // loop through sensing cost
-  for(beta = 0; beta < 0.2; beta += 0.05)
+  for(beta = 0; beta <= 1; beta += 1)
     {
       // loop through environmental frequency
-      for(tomega = 0.02; tomega < 5; tomega *= 2)
+      //  for(tomega = 0.02; tomega < 5; tomega *= 2)
+      for(tomega = 0; tomega <= 2; tomega += 0.1)
 	{
-	  if(tomega == 0.02) omega = 0; else omega = tomega;
+	  omega = tomega;
+	  //  if(tomega == 0.02) omega = 0; else omega = tomega;
 	  // loop through environmental phase
 	  for(phi = 0; phi < 2*PI; phi += 0.5)
 	    {
