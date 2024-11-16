@@ -56,7 +56,7 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
   if(output)
     {
       fp = fopen(fname, "w");
-      fprintf(fp, "t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2, cfW\n");
+      fprintf(fp, "t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2, cfW, intdiffdt\n");
     }
       
   // initialise state
@@ -67,14 +67,15 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
   delta = beta*(k0 + kp + ki + kd);
   #endif
   // euler time simulation
-  for(t = 0; t < 100 && (stateI + stateA) > 1e-6; t += dt)
+  prevdiff = 0; intdiffdt = 0; 
+  for(t = 0; t < 1000 && (stateI + stateA) > 1e-6; t += dt)
     {
       // current environments
       env = envfn(t, omega, phi);
       // environment statistics for PID
       diff = env-0.5;
-      ddiffdt = (t == 0 ? 0 : (diff-prevdiff)/dt);
-      intdiffdt = (t == 0 ? 0 : intdiffdt + diff*dt);
+      ddiffdt = (diff-prevdiff)/dt;
+      intdiffdt = intdiffdt + diff*dt;
 
       // rate constants
       sigma = mymax(0, k0 + kp*diff + ki*intdiffdt + kd*ddiffdt);
@@ -101,7 +102,7 @@ void Simulate(double k0, double kp, double ki, double kd, double beta, double om
 
       if(output)
 	{
-	  fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2, closedform(t, omega, phi, k0, k0));
+	  fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t, env, stateI, stateA, stateW, stateL, sigma, rho, kappa1, kappa2, closedform(t, omega, phi, k0, k0), intdiffdt);
 	}
 
     }
@@ -131,6 +132,10 @@ int main(void)
   beta = 10; omega = testomega; phi = 2.5; k0 = 0.25; kp = 0.75; ki = 0.75; kd = 1;
   Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-2.csv");
 
+  beta = 0; omega = 0; phi = 4.0; k0 = 1; kp = 0.4; ki = 1; kd = 0.4;
+  Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 1, "example-issue.csv");
+
+  //  return 0;
   //  return 0;
   #ifdef _RK
     fp = fopen("redo-out-rk.csv", "w");
@@ -151,13 +156,13 @@ int main(void)
 	  for(phi = 0; phi < 2*PI; phi += 0.5)
 	    {
 	      // loop through PID terms
-	      for(k0 = 0; k0 <= 1; k0 += 0.25)
+	      for(k0 = 0; k0 <= 1; k0 += 0.2)
 		{
-		  for(kp = 0; kp <= 1; kp += 0.25)
+		  for(kp = 0; kp <= 1; kp += 0.2)
 		    {
-		      for(ki = 0; ki <= 1; ki += 0.25)
+		      for(ki = 0; ki <= 1; ki += 0.2)
 			{
-			  for(kd = 0; kd <= 1; kd += 0.25)
+			  for(kd = 0; kd <= 1; kd += 0.2)
 			    {
 			      Simulate(k0, kp, ki, kd, beta, omega, phi, &stateW, &stateL, &delta, &tend, 0, "tmp");
 			      fprintf(fp, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", beta, tomega, phi, k0, kp, ki, kd, stateW, stateL, delta, tend);
