@@ -333,7 +333,7 @@ tdf.1 = read.csv("../example-1.csv")
 tdf.2 = read.csv("../example-2.csv")
 tdf.eps = read.csv("../example-noise.csv")
 
-plot.time.series(tdf.eps)
+plot.time.series(tdf.eps) + xlim(0,20)
 
 xmax = 100
 g.0 = ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat") + xlim(0,xmax), 
@@ -372,3 +372,128 @@ dev.off()
 
 ggplot(df.all[df.all$K0==1 & df.all$Kp==0 & df.all$Ki==0 & df.all$Kd==0,],
        aes(x=Phase, y=Frequency, fill=S)) + geom_tile() + scale_fill_viridis() + facet_wrap(~Epsilon)
+
+df.i = df.all[df.all$Epsilon==0.5 & df.all$tend <= 100,1:9]
+
+# (o) Null behaviour
+df_null.i = df.i[df.i$K0==1 & df.i$Kp==0 & df.i$Ki==0 & df.i$Kd==0,]
+g.o.i = ggplot(df_null.i, aes(x=Phase, y=Frequency, fill=S)) + 
+  geom_tile() + facet_wrap(~Beta)
+
+# (a) Maximum response value for each set of state variables
+df_max_response.i <- df.i %>%
+  group_by(Frequency, Beta, Phase) %>%
+  summarize(max_response = max(S), .groups = 'drop')
+
+df_improvements.i = df_max_response.i %>%
+  left_join(df_null.i, by = c("Frequency" = "Frequency", "Phase" = "Phase", "Beta" = "Beta")) %>%
+  rename(null_response = S)
+
+g.a.i = ggplot(df_max_response.i[df_max_response.i$Frequency>0,], aes(x=Phase, y=Frequency, fill=max_response)) + 
+  geom_tile() + facet_wrap(~Beta)
+g.a.1.i = ggplot(df_improvements.i, aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
+  geom_tile() + facet_wrap(~Beta)
+
+# (b) Optimal control variables that give the maximum response for each set of state variables
+df_optimal_controls.i <- df.i %>%
+  group_by(Frequency, Beta, Phase) %>%
+  filter(S == max(S)) %>%
+  summarize(
+    K0 = mean(K0),
+    Kp = mean(Kp),
+    Ki = mean(Ki),
+    Kd = mean(Kd),
+    .groups = 'drop'
+  )
+
+g.b.1.i = ggarrange(
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
+)
+
+g.b.2.i = ggarrange(
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
+)
+
+# (c) Performance of given control set across conditions
+df_mean_performance.i <- df.i %>%
+  group_by(Beta, K0, Kp, Ki, Kd) %>%
+  summarize(mean_response = mean(S), .groups = 'drop')
+
+top.0.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==0,], desc(mean_response))
+top.0.i$rank = 1:nrow(top.0.i)
+top.p.0.i <- top.0.i %>%
+  pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
+
+# Plot with stacked bars
+nset = 50*4
+g.c.0.i = ggplot() +
+  geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
+  geom_line(data = unique(top.p.0.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
+  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  theme_minimal()
+
+top.1.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==1,], desc(mean_response))
+top.1.i$rank = 1:nrow(top.1.i)
+top.p.1.i <- top.1.i %>%
+  pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
+
+# Plot with stacked bars
+nset = 50*4
+g.c.1.i = ggplot() +
+  geom_bar(data = top.p.1.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
+  geom_line(data = unique(top.p.1.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
+  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  theme_minimal()
+
+# final figures -- stochastic
+
+g.1 =  ggarrange(ggplot(df_null.i[df_null.i$Beta==0,], aes(x=Phase, y=Frequency, fill=S)) +  
+                   geom_tile() + scale_fill_viridis(),
+                 ggplot(df.i.tmp[df.i.tmp$Beta==0 &
+                                   df.i.tmp$K0 == 1 & df.i.tmp$Kp == 0 & 
+                                   df.i.tmp$Kp == 0 & df.i.tmp$Kd == 0,], 
+                        aes(x=Phase, y=Frequency, 
+                            fill=ares(K0, K0, Frequency, Phase))) + 
+                   geom_tile() + labs(fill="S") + scale_fill_viridis(),
+                 nrow=1
+)
+
+g.2 = ggarrange(
+  g.a.i+xlim(0,6)+ylim(0,1.5)+
+    scale_fill_viridis(limits=c(0,1)) + labs(fill="S*"), 
+  g.a.1.i+xlim(0,6)+ylim(0,1.5) +
+    scale_fill_viridis() + labs(fill="S*-S0"),
+  nrow=2)
+
+g.3 = ggarrange(g.b.1.i, g.b.2.i)
+
+g.4 = ggarrange(g.c.0.i + ylim(0,3.1) + scale_fill_viridis_d(),
+                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d())
+
+
+
+sf = 2
+png("fig-stoch-1.png", width=300*sf, height=600*sf, res=72*sf)
+print(g.0)
+dev.off()
+png("fig-stoch-1a.png", width=600*sf, height=300*sf, res=72*sf)
+print(g.0a)
+dev.off()
+png("fig-stoch-2.png", width=600*sf, height=300*sf, res=72*sf)
+print(g.1)
+dev.off()
+png("fig-stoch-3.png", width=600*sf, height=600*sf, res=72*sf)
+print(g.2)
+dev.off()
+png("fig-stoch-4.png", width=800*sf, height=400*sf, res=72*sf)
+print(g.3)
+dev.off()
+png("fig-stoch-5.png", width=600*sf, height=300*sf, res=72*sf)
+print(g.4)
+dev.off()
