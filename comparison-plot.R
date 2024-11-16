@@ -2,6 +2,7 @@ library(ggplot2)
 library(ggpubr)
 library(dplyr)
 library(tidyr)
+library(viridis)
 
 ##### RK simulations
 
@@ -112,7 +113,9 @@ g.c.1 = ggplot() +
 
 df.i.tmp = read.csv("../redo-out-rk.csv")
 head(df.i.tmp)
-colnames(df.i.tmp) = c("Beta", "Frequency", "Phase", "K0", "Kp", "Ki", "Kd", "S", "L", "delta", "tend")
+colnames(df.i.tmp) = c("Beta", "Epsilon", "Frequency", "Phase", "K0", "Kp", "Ki", "Kd", "S", "L", "delta", "tend")
+df.all = df.i.tmp
+df.i.tmp = df.i.tmp[df.i.tmp$Epsilon==0,]
 df.i = df.i.tmp[df.i.tmp$tend <= 100,1:8]
 
 # check that we don't exceed max possible win in static case
@@ -161,17 +164,17 @@ df_optimal_controls.i <- df.i %>%
   )
 
 g.b.1.i = ggarrange(
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile()
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
 )
 
 g.b.2.i = ggarrange(
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile()
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
+  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
 )
 
 # (c) Performance of given control set across conditions
@@ -214,9 +217,18 @@ head(df.i.tmp[df.i.tmp$K0==0 & df.i.tmp$Kp==0.4 & df.i.tmp$Ki==0 & df.i.tmp$Kd==
 # when do approaches fail to converge?
 non.con = df.i.tmp[df.i.tmp$tend>=100,]
 ggplot(non.con, aes(x=K0, y=Ki)) + geom_hex()
+ggplot(non.con, aes(x=Frequency, y=Phase)) + geom_density_2d_filled()
+counts_df <- non.con %>%
+  count(Beta, Frequency, Phase, name = "count")
+g.noncon = ggplot(counts_df, aes(x = Phase, y= Frequency, fill = count)) + geom_tile() + scale_fill_viridis()
+
 summary(non.con)
 hist(non.con$Phase)
 hist(non.con$Frequency)
+hist(non.con$Ki)
+hist(non.con$K0)
+hist(non.con$Kp)
+hist(non.con$Kd)
 
 # compare RK and IJ results over the set that do converge
 comparison <- df.i.tmp %>%
@@ -237,16 +249,11 @@ ggplot(df.i[df.i$K0==1 & df.i$Kp==0.4 & df.i$Ki==0.4 & df.i$Kd==0,],
 nrow=2
 )
 
-# disagreement after phase = pi
-head(df[df$K0==1 & df$Kp==0.4 & df$Ki==1 & df$Kd==0.4 & df$Frequency==0 & df$Phase > 2,])
-head(df.i.tmp[df.i.tmp$K0==1 & df.i.tmp$Kp==0.4 & df.i.tmp$Ki==1 & df.i.tmp$Kd==0.4 & df.i.tmp$Frequency==0 & df.i.tmp$Phase > 2,])
-
 df.ts = read.csv("../example-issue.csv")
 ggplot(df.ts) + 
   geom_line(aes(x=t, y=stateW)) + 
   geom_line(aes(x=t, y=intdiffdt)) +
   geom_line(aes(x=t, y=stateI))  
-  
 
 # null performance
 ggarrange(g.o+xlim(0,6)+ylim(0,1.5), g.o.i+xlim(0,6)+ylim(0,1.5), nrow=2)
@@ -269,3 +276,99 @@ ggarrange(g.c.0, g.c.1, g.c.0.i, g.c.1.i)
 
 #######
 
+ares = function(rho, sigma, omega, phi) {
+xi = sqrt(1+2*rho+rho*rho-2*sigma+2*rho*sigma+sigma**2)
+res= (xi*(0.5*sigma*sigma + (0.5 + rho + 0.5*rho*rho + rho*sigma + 0.5*sigma**2) * omega*omega + 0.5*omega**4 +
+        (0.5 + 0.5*rho + 0.5*sigma)*sigma*omega*cos(phi) + sigma*(0.5*sigma - 0.5*omega**2)*sin(phi))) /
+  (sqrt(-4*sigma + (rho+sigma+1)**2)*(sigma*sigma + (1+2*rho + rho**2 + 2*rho*sigma + sigma**2)*omega**2 + omega**4))
+    return(res)
+}
+
+# final figures
+
+g.1 =  ggarrange(ggplot(df_null.i[df_null.i$Beta==0,], aes(x=Phase, y=Frequency, fill=S)) +  
+  geom_tile() + scale_fill_viridis(),
+  ggplot(df.i.tmp[df.i.tmp$Beta==0 &
+                    df.i.tmp$K0 == 1 & df.i.tmp$Kp == 0 & 
+                    df.i.tmp$Kp == 0 & df.i.tmp$Kd == 0,], 
+         aes(x=Phase, y=Frequency, 
+             fill=ares(K0, K0, Frequency, Phase))) + 
+    geom_tile() + labs(fill="S") + scale_fill_viridis(),
+  nrow=1
+)
+
+g.2 = ggarrange(
+                g.a.i+xlim(0,6)+ylim(0,1.5)+
+                  scale_fill_viridis(limits=c(0,1)) + labs(fill="S*"), 
+                g.a.1.i+xlim(0,6)+ylim(0,1.5) +
+                                    scale_fill_viridis() + labs(fill="S*-S0"),
+                nrow=2)
+
+g.3 = ggarrange(g.b.1.i, g.b.2.i)
+
+g.4 = ggarrange(g.c.0.i + ylim(0,3.1) + scale_fill_viridis_d(),
+                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d())
+
+
+###
+
+#### some specific examples
+# to compare with RK, red is good, green is bad
+
+plot.time.series = function(tdf) {
+  return(ggplot(tdf) + 
+           geom_line(aes(x=t, y=env), color="grey") +
+           geom_line(aes(x=t, y=stateW), color="darkgreen") +
+           geom_line(aes(x=t, y=stateL), color="red") +
+           geom_line(aes(x=t, y=stateI), color="blue") +
+           geom_line(aes(x=t, y=stateA), color="orange") +
+           xlim(0,100) +
+           theme_light() )
+}
+
+tdf.0a = read.csv("../example-0a.csv")
+tdf.0b = read.csv("../example-0b.csv")
+tdf.0c = read.csv("../example-0c.csv")
+tdf.1 = read.csv("../example-1.csv")
+tdf.2 = read.csv("../example-2.csv")
+tdf.eps = read.csv("../example-noise.csv")
+
+plot.time.series(tdf.eps)
+
+xmax = 100
+g.0 = ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat") + xlim(0,xmax), 
+                plot.time.series(tdf.0c) + ggtitle("No sensing, good phase") + xlim(0,xmax),
+                plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase") + xlim(0,xmax),
+                plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase") + xlim(0,xmax), 
+                plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase") + xlim(0,xmax),
+                nrow=5)
+
+g.0a = ggarrange(
+  plot.time.series(df.ts) + xlim(0,8),
+  g.noncon
+)
+
+sf = 2
+png("fig-1.png", width=300*sf, height=600*sf, res=72*sf)
+print(g.0)
+dev.off()
+png("fig-1a.png", width=600*sf, height=300*sf, res=72*sf)
+print(g.0a)
+dev.off()
+png("fig-2.png", width=600*sf, height=300*sf, res=72*sf)
+print(g.1)
+dev.off()
+png("fig-3.png", width=600*sf, height=600*sf, res=72*sf)
+print(g.2)
+dev.off()
+png("fig-4.png", width=800*sf, height=400*sf, res=72*sf)
+print(g.3)
+dev.off()
+png("fig-5.png", width=600*sf, height=300*sf, res=72*sf)
+print(g.4)
+dev.off()
+
+#### stochastic
+
+ggplot(df.all[df.all$K0==1 & df.all$Kp==0 & df.all$Ki==0 & df.all$Kd==0,],
+       aes(x=Phase, y=Frequency, fill=S)) + geom_tile() + scale_fill_viridis() + facet_wrap(~Epsilon)
