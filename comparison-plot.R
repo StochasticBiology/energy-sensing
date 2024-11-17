@@ -4,6 +4,9 @@ library(dplyr)
 library(tidyr)
 library(viridis)
 
+# plots and comparisons for PID project
+# ChatGPT used to create some plot stylings
+
 ##### RK simulations
 
 # optimal_results_with_K0.csv represents stochastic environment with sensing at different sensing costs.
@@ -93,7 +96,7 @@ nset = 50*4
 g.c.0 = ggplot() +
   geom_bar(data = top.p.0[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
   geom_line(data = unique(top.p.0[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  labs(x = "Row ID", y = "Value", title = "Best PID strategies (free)") +
   theme_minimal()
 
 top.1 = arrange(df_mean_performance[df_mean_performance$Beta==1,], desc(mean_response))
@@ -106,7 +109,7 @@ nset = 50*4
 g.c.1 = ggplot() +
   geom_bar(data = top.p.1[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
   geom_line(data = unique(top.p.1[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  labs(x = "Row ID", y = "Value", title = "Best PID strategies (costly)") +
   theme_minimal()
 
 ##### IJ simulations
@@ -116,7 +119,7 @@ head(df.i.tmp)
 colnames(df.i.tmp) = c("Beta", "Epsilon", "Frequency", "Phase", "K0", "Kp", "Ki", "Kd", "S", "L", "delta", "tend")
 df.all = df.i.tmp
 df.i.tmp = df.i.tmp[df.i.tmp$Epsilon==0,]
-df.i = df.i.tmp[df.i.tmp$tend <= 100,1:8]
+df.i = df.i.tmp[df.i.tmp$tend <= 100,1:9]
 
 # check that we don't exceed max possible win in static case
 sub0.i = df.i.tmp[df.i.tmp$Frequency == 0,]
@@ -192,7 +195,7 @@ nset = 50*4
 g.c.0.i = ggplot() +
   geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
   geom_line(data = unique(top.p.0.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  labs(x = "Row ID", y = "Value", title = "Best PID strategies (free)") +
   theme_minimal()
 
 top.1.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==1,], desc(mean_response))
@@ -205,7 +208,7 @@ nset = 50*4
 g.c.1.i = ggplot() +
   geom_bar(data = top.p.1.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
   geom_line(data = unique(top.p.1.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  labs(x = "Row ID", y = "Value", title = "Best PID strategies (costly)") +
   theme_minimal()
 
 ###########
@@ -294,6 +297,7 @@ g.1 =  ggarrange(ggplot(df_null.i[df_null.i$Beta==0,], aes(x=Phase, y=Frequency,
          aes(x=Phase, y=Frequency, 
              fill=ares(K0, K0, Frequency, Phase))) + 
     geom_tile() + labs(fill="S") + scale_fill_viridis(),
+  labels=c("A", "B"),
   nrow=1
 )
 
@@ -302,12 +306,14 @@ g.2 = ggarrange(
                   scale_fill_viridis(limits=c(0,1)) + labs(fill="S*"), 
                 g.a.1.i+xlim(0,6)+ylim(0,1.5) +
                                     scale_fill_viridis() + labs(fill="S*-S0"),
-                nrow=2)
+                nrow=2, 
+                labels=c("A", "B"))
 
-g.3 = ggarrange(g.b.1.i, g.b.2.i)
+g.3 = ggarrange(g.b.1.i, g.b.2.i, labels=c("A", "B"))
 
 g.4 = ggarrange(g.c.0.i + ylim(0,3.1) + scale_fill_viridis_d(),
-                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d())
+                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d(),
+                labels=c("A", "B"))
 
 
 ###
@@ -335,21 +341,23 @@ tdf.eps = read.csv("../example-noise.csv")
 
 plot.time.series(tdf.eps) + xlim(0,20)
 
-xmax = 100
-g.0 = ggarrange(plot.time.series(tdf.0a) + ggtitle("No sensing, flat") + xlim(0,xmax), 
-                plot.time.series(tdf.0c) + ggtitle("No sensing, good phase") + xlim(0,xmax),
-                plot.time.series(tdf.0b) + ggtitle("No sensing, bad phase") + xlim(0,xmax),
-                plot.time.series(tdf.1) + ggtitle("Free sensing, bad phase") + xlim(0,xmax), 
-                plot.time.series(tdf.2) + ggtitle("Costly sensing, bad phase") + xlim(0,xmax),
-                nrow=5)
+xmax = 50
+g.0 = ggarrange(plot.time.series(tdf.0a) + ggtitle("A. No sensing, flat") + labs(y="Values") + xlim(0,xmax), 
+                plot.time.series(tdf.0c) + ggtitle("B. No sensing, good phase") + labs(y="Values") + xlim(0,xmax),
+                plot.time.series(tdf.0b) + ggtitle("C. No sensing, bad phase") + labs(y="Values") + xlim(0,xmax),
+                plot.time.series(tdf.1) + ggtitle("D. Free sensing, bad phase") + labs(y="Values") + xlim(0,xmax), 
+                plot.time.series(tdf.2) + ggtitle("E. Costly sensing, bad phase") + labs(y="Values") + xlim(0,xmax),
+                plot.time.series(tdf.eps) + ggtitle("F. Stochastic environment") + labs(y="Values") + xlim(0,xmax),
+                nrow=3, ncol=2)
 
 g.0a = ggarrange(
-  plot.time.series(df.ts) + xlim(0,8),
-  g.noncon
+  plot.time.series(df.ts) + labs(y = "Values") + xlim(0,8),
+  g.noncon + labs(fill="Simulations"),
+  labels = c("A", "B")
 )
 
 sf = 2
-png("fig-1.png", width=300*sf, height=600*sf, res=72*sf)
+png("fig-1.png", width=600*sf, height=500*sf, res=72*sf)
 print(g.0)
 dev.off()
 png("fig-1a.png", width=600*sf, height=300*sf, res=72*sf)
@@ -435,7 +443,7 @@ nset = 50*4
 g.c.0.i = ggplot() +
   geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
   geom_line(data = unique(top.p.0.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  labs(x = "Row ID", y = "Value", title = "Best PID strategies (free)") +
   theme_minimal()
 
 top.1.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==1,], desc(mean_response))
@@ -448,7 +456,7 @@ nset = 50*4
 g.c.1.i = ggplot() +
   geom_bar(data = top.p.1.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
   geom_line(data = unique(top.p.1.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Stacked Bar Plot for Each Row") +
+  labs(x = "Row ID", y = "Value", title = "Best PID strategies (costly)") +
   theme_minimal()
 
 # final figures -- stochastic
@@ -461,6 +469,7 @@ g.1 =  ggarrange(ggplot(df_null.i[df_null.i$Beta==0,], aes(x=Phase, y=Frequency,
                         aes(x=Phase, y=Frequency, 
                             fill=ares(K0, K0, Frequency, Phase))) + 
                    geom_tile() + labs(fill="S") + scale_fill_viridis(),
+                 labels=c("A", "B"),
                  nrow=1
 )
 
@@ -469,14 +478,17 @@ g.2 = ggarrange(
     scale_fill_viridis(limits=c(0,1)) + labs(fill="S*"), 
   g.a.1.i+xlim(0,6)+ylim(0,1.5) +
     scale_fill_viridis() + labs(fill="S*-S0"),
-  nrow=2)
+  nrow=2, 
+  labels=c("A", "B"))
 
-g.3 = ggarrange(g.b.1.i, g.b.2.i)
+g.3 = ggarrange(g.b.1.i, g.b.2.i, labels=c("A", "B"))
 
 g.4 = ggarrange(g.c.0.i + ylim(0,3.1) + scale_fill_viridis_d(),
-                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d())
+                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d(),
+                labels=c("A", "B"))
 
 
+###
 
 sf = 2
 png("fig-stoch-1.png", width=300*sf, height=600*sf, res=72*sf)
