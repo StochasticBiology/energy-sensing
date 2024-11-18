@@ -131,6 +131,14 @@ df.all = df.i.tmp
 df.i.tmp = df.i.tmp[df.i.tmp$Epsilon==0,]
 df.i = df.i.tmp[df.i.tmp$tend <= 100,1:9]
 
+# when do approaches fail to converge?
+non.con = df.i.tmp[df.i.tmp$tend>=100,]
+ggplot(non.con, aes(x=K0, y=Ki)) + geom_hex()
+#ggplot(non.con, aes(x=Frequency, y=Phase)) + geom_density_2d_filled()
+counts_df <- non.con %>%
+  count(Beta, Frequency, Phase, name = "count")
+g.noncon = ggplot(counts_df, aes(x = Phase, y= Frequency, fill = count)) + geom_tile() + scale_fill_viridis()
+
 # check that we don't exceed max possible win in static case
 sub0.i = df.i.tmp[df.i.tmp$Frequency == 0,]
 ggplot(sub0.i, aes(x=0.5+0.5*sin(Phase), y=S)) + geom_point() + geom_abline() +
