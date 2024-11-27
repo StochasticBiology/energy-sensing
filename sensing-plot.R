@@ -167,9 +167,16 @@ df_improvements.i = df_max_response.i %>%
   left_join(df_null.i, by = c("Frequency" = "Frequency", "Phase" = "Phase", "Beta" = "Beta")) %>%
   rename(null_response = S)
 
-g.a.i = ggplot(df_max_response.i[df_max_response.i$Frequency>0,], aes(x=Phase, y=Frequency, fill=max_response)) + 
+g.a.i = ggplot(df_max_response.i[df_max_response.i$Frequency>0 & df_max_response.i$Beta %in% c(0,1),], 
+               aes(x=Phase, y=Frequency, fill=max_response)) + 
   geom_tile() + facet_wrap(~Beta)
-g.a.1.i = ggplot(df_improvements.i, aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
+g.a.1.i = ggplot(df_improvements.i[df_improvements.i$Beta %in% c(0,1),], 
+                 aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
+  geom_tile() + facet_wrap(~Beta)
+
+g.a.i.all = ggplot(df_max_response.i[df_max_response.i$Frequency>0,], aes(x=Phase, y=Frequency, fill=max_response)) + 
+  geom_tile() + facet_wrap(~Beta)
+g.a.1.i.all = ggplot(df_improvements.i, aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
   geom_tile() + facet_wrap(~Beta)
 
 # (b) Optimal control variables that give the maximum response for each set of state variables
@@ -184,50 +191,48 @@ df_optimal_controls.i <- df.i %>%
     .groups = 'drop'
   )
 
-g.b.1.i = ggarrange(
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
-)
-
-g.b.2.i = ggarrange(
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
-)
+b.plots = function(beta) {
+  return(
+    ggarrange(
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
+    )
+  )
+}
+g.b.1.i = b.plots(0)
+g.b.2.i = b.plots(1)
+g.b.3.i = b.plots(0.01)
+g.b.4.i = b.plots(0.1)
 
 # (c) Performance of given control set across conditions
 df_mean_performance.i <- df.i %>%
   group_by(Beta, K0, Kp, Ki, Kd) %>%
   summarize(mean_response = mean(S), .groups = 'drop')
 
-top.0.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==0,], desc(mean_response))
-top.0.i$rank = 1:nrow(top.0.i)
-top.p.0.i <- top.0.i %>%
-  pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
+c.plots = function(beta) {
+  top.0.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==beta,], desc(mean_response))
+  top.0.i$rank = 1:nrow(top.0.i)
+  top.p.0.i <- top.0.i %>%
+    pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
+  c.title = paste0("Best PID strategies (β = ", round(beta, digits=2), ")", collapse="")
+  # Plot with stacked bars
+  nset = 50*4
+  return(
+    ggplot() +
+    geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
+    geom_line(data = unique(top.p.0.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
+    labs(x = "Row ID", y = "Value", title = c.title) +
+    theme_minimal()
+  )
+}
 
-# Plot with stacked bars
-nset = 50*4
-g.c.0.i = ggplot() +
-  geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
-  geom_line(data = unique(top.p.0.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Best PID strategies (free)") +
-  theme_minimal()
+g.c.0.i = c.plots(0)
+g.c.1.i = c.plots(1)
+g.c.2.i = c.plots(0.01)
+g.c.3.i = c.plots(0.1)
 
-top.1.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==1,], desc(mean_response))
-top.1.i$rank = 1:nrow(top.1.i)
-top.p.1.i <- top.1.i %>%
-  pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
-
-# Plot with stacked bars
-nset = 50*4
-g.c.1.i = ggplot() +
-  geom_bar(data = top.p.1.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
-  geom_line(data = unique(top.p.1.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Best PID strategies (costly)") +
-  theme_minimal()
 
 ###########
 
@@ -397,30 +402,37 @@ dev.off()
 ggplot(df.all[df.all$K0==1 & df.all$Kp==0 & df.all$Ki==0 & df.all$Kd==0,],
        aes(x=Phase, y=Frequency, fill=S)) + geom_tile() + scale_fill_viridis() + facet_wrap(~Epsilon)
 
-df.i = df.all[df.all$Epsilon==0.5 & df.all$tend <= 100,1:9]
+df.i = df.all[df.all$Epsilon>0 & df.all$tend <= 100,1:9]
 
 # (o) Null behaviour
 df_null.i = df.i[df.i$K0==1 & df.i$Kp==0 & df.i$Ki==0 & df.i$Kd==0,]
 g.o.i = ggplot(df_null.i, aes(x=Phase, y=Frequency, fill=S)) + 
-  geom_tile() + facet_wrap(~Beta)
+  geom_tile() + facet_grid(Epsilon~Beta)
 
 # (a) Maximum response value for each set of state variables
 df_max_response.i <- df.i %>%
-  group_by(Frequency, Beta, Phase) %>%
+  group_by(Frequency, Beta, Epsilon, Phase) %>%
   summarize(max_response = max(S), .groups = 'drop')
 
 df_improvements.i = df_max_response.i %>%
-  left_join(df_null.i, by = c("Frequency" = "Frequency", "Phase" = "Phase", "Beta" = "Beta")) %>%
+  left_join(df_null.i, by = c("Frequency" = "Frequency", "Phase" = "Phase", "Beta" = "Beta", "Epsilon" = "Epsilon")) %>%
   rename(null_response = S)
 
-g.a.i = ggplot(df_max_response.i[df_max_response.i$Frequency>0,], aes(x=Phase, y=Frequency, fill=max_response)) + 
-  geom_tile() + facet_wrap(~Beta)
-g.a.1.i = ggplot(df_improvements.i, aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
-  geom_tile() + facet_wrap(~Beta)
+g.a.i = ggplot(df_max_response.i[df_max_response.i$Frequency>0 & df_max_response.i$Beta %in% c(0,1) &
+                                       df_max_response.i$Epsilon == 0.5,], aes(x=Phase, y=Frequency, fill=max_response)) + 
+  geom_tile() + facet_grid(Epsilon~Beta)
+g.a.1.i = ggplot(df_improvements.i[df_improvements.i$Beta %in% c(0,1) & df_improvements.i$Epsilon == 0.5,], 
+                     aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
+  geom_tile() + facet_grid(Epsilon~Beta)
+
+g.a.i.all = ggplot(df_max_response.i[df_max_response.i$Frequency>0,], aes(x=Phase, y=Frequency, fill=max_response)) + 
+  geom_tile() + facet_grid(Epsilon~Beta)
+g.a.1.i.all = ggplot(df_improvements.i, aes(x=Phase, y=Frequency, fill=max_response-null_response)) + 
+  geom_tile() + facet_grid(Epsilon~Beta)
 
 # (b) Optimal control variables that give the maximum response for each set of state variables
 df_optimal_controls.i <- df.i %>%
-  group_by(Frequency, Beta, Phase) %>%
+  group_by(Frequency, Beta, Epsilon, Phase) %>%
   filter(S == max(S)) %>%
   summarize(
     K0 = mean(K0),
@@ -430,50 +442,50 @@ df_optimal_controls.i <- df.i %>%
     .groups = 'drop'
   )
 
-g.b.1.i = ggarrange(
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==0,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
-)
-
-g.b.2.i = ggarrange(
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
-  ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==1,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
-)
+b.plots.stoch = function(beta, epsilon) {
+  return(
+    ggarrange(
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta & df_optimal_controls.i$Epsilon==epsilon,], aes(x=Phase, y=Frequency, fill=K0)) + geom_tile() + scale_fill_viridis_b(),
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta & df_optimal_controls.i$Epsilon==epsilon,], aes(x=Phase, y=Frequency, fill=Kp)) + geom_tile() + scale_fill_viridis_b(),
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta & df_optimal_controls.i$Epsilon==epsilon,], aes(x=Phase, y=Frequency, fill=Ki)) + geom_tile() + scale_fill_viridis_b(),
+      ggplot(df_optimal_controls.i[df_optimal_controls.i$Beta==beta & df_optimal_controls.i$Epsilon==epsilon,], aes(x=Phase, y=Frequency, fill=Kd)) + geom_tile() + scale_fill_viridis_b()
+    )
+  )
+}
+g.b.1.i = b.plots.stoch(0, 0.5)
+g.b.2.i = b.plots.stoch(1, 0.5)
+g.b.3.i = b.plots.stoch(0, 0.05)
+g.b.4.i = b.plots.stoch(1, 0.05)
+g.b.5.i = b.plots.stoch(0, 0.2)
+g.b.6.i = b.plots.stoch(1, 0.2)
 
 # (c) Performance of given control set across conditions
 df_mean_performance.i <- df.i %>%
-  group_by(Beta, K0, Kp, Ki, Kd) %>%
+  group_by(Beta, Epsilon, K0, Kp, Ki, Kd) %>%
   summarize(mean_response = mean(S), .groups = 'drop')
 
-top.0.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==0,], desc(mean_response))
-top.0.i$rank = 1:nrow(top.0.i)
-top.p.0.i <- top.0.i %>%
-  pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
+c.plots.stoch = function(beta, epsilon) {
+  top.0.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==beta & df_mean_performance.i$Epsilon==epsilon,], 
+                    desc(mean_response))
+  top.0.i$rank = 1:nrow(top.0.i)
+  top.p.0.i <- top.0.i %>%
+    pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
+  c.title = paste0("Best PID strategies (β = ", round(beta, digits=2), ", ε = ", round(epsilon, digits=2), ")", collapse="")
+  # Plot with stacked bars
+  nset = 50*4
+  return(
+    ggplot() +
+    geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
+    geom_line(data = unique(top.p.0.i[1:nset,3:4]), aes(x=rank, y=mean_response)) +
+    labs(x = "Row ID", y = "Value", title = c.title) +
+    theme_minimal() + ylim(0,3.1) + scale_fill_viridis_d()
+  )
+}
 
-# Plot with stacked bars
-nset = 50*4
-g.c.0.i = ggplot() +
-  geom_bar(data = top.p.0.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
-  geom_line(data = unique(top.p.0.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Best PID strategies (free)") +
-  theme_minimal()
-
-top.1.i = arrange(df_mean_performance.i[df_mean_performance.i$Beta==1,], desc(mean_response))
-top.1.i$rank = 1:nrow(top.1.i)
-top.p.1.i <- top.1.i %>%
-  pivot_longer(cols = c(K0,Kp,Ki,Kd), names_to = "category", values_to = "value")
-
-# Plot with stacked bars
-nset = 50*4
-g.c.1.i = ggplot() +
-  geom_bar(data = top.p.1.i[1:nset,], aes(x = rank, y = value, fill = category), stat = "identity", position = "stack") +
-  geom_line(data = unique(top.p.1.i[1:nset,2:3]), aes(x=rank, y=mean_response)) +
-  labs(x = "Row ID", y = "Value", title = "Best PID strategies (costly)") +
-  theme_minimal()
+g.c.0.i = c.plots.stoch(0, 0.5)
+g.c.1.i = c.plots.stoch(1, 0.5)
+g.c.2.i = c.plots.stoch(0.01, 0.5)
+g.c.3.i = c.plots.stoch(0.1, 0.5)
 
 # final figures -- stochastic
 
@@ -499,10 +511,22 @@ g.2 = ggarrange(
 
 g.3 = ggarrange(g.b.1.i, g.b.2.i, labels=c("A", "B"))
 
-g.4 = ggarrange(g.c.0.i + ylim(0,3.1) + scale_fill_viridis_d(),
-                g.c.1.i + ylim(0,3.1) + scale_fill_viridis_d(),
+g.4 = ggarrange(g.c.0.i ,
+                g.c.1.i ,
                 labels=c("A", "B"))
 
+g.s1 = ggarrange(
+  g.a.i.all+xlim(0,6)+ylim(0,1.5)+
+    scale_fill_viridis(limits=c(0,1)) + labs(fill="S*"), 
+  g.a.1.i.all+xlim(0,6)+ylim(0,1.5) +
+    scale_fill_viridis() + labs(fill="S*-S0"),
+  nrow=2, 
+  labels=c("A", "B"))
+
+g.s2 = ggarrange(c.plots.stoch(0,0.05), c.plots.stoch(0.1,0.05), c.plots.stoch(1,0.05),
+          c.plots.stoch(0,0.2), c.plots.stoch(0.1,0.2), c.plots.stoch(1,0.2),
+          c.plots.stoch(0,0.5), c.plots.stoch(0.1,0.5), c.plots.stoch(1,0.5),
+          nrow=3, ncol=3)
 
 ###
 
@@ -525,3 +549,10 @@ dev.off()
 png("fig-stoch-5.png", width=600*sf, height=300*sf, res=72*sf)
 print(g.4)
 dev.off()
+png("fig-stoch-s1.png", width=600*sf, height=800*sf, res=72*sf)
+print(g.s1)
+dev.off()
+png("fig-stoch-s2.png", width=800*sf, height=800*sf, res=72*sf)
+print(g.s2)
+dev.off()
+
