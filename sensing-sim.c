@@ -148,7 +148,7 @@ int main(void)
   FILE *fp;
   double testomega = 1;
   double eps;
-  int teps;
+  int teps, tbeta;
   
   //testomega = 2*PI;
   
@@ -178,14 +178,21 @@ int main(void)
 #endif
   fprintf(fp, "beta,epsilon,omega,phi,k0,kp,ki,kd,W,L,delta,tend\n");
   // loop through sensing cost
-  for(beta = 0; beta <= 1; beta += 1)
+  for(tbeta = 0; tbeta < 4; tbeta ++)
     {
-      for(teps = 0; teps < 3; teps++)
+      switch(tbeta) {
+      case 0: beta = 0; break;
+      case 1: beta = 0.01; break;
+      case 2: beta = 0.1; break;
+      case 3: beta = 1; break;
+      }
+      for(teps = 0; teps < 4; teps++)
 	{
 	  switch(teps) {
 	  case 0: eps = 0; break;
-	  case 1: eps = 0.2; break;
-	  case 2: eps = 0.5; break;
+	  case 1: eps = 0.05; break;
+	  case 2: eps = 0.2; break;
+	  case 3: eps = 0.5; break;
 	  }
 	  // loop through environmental frequency
 	  //  for(tomega = 0.02; tomega < 5; tomega *= 2)
