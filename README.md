@@ -11,5 +11,5 @@ Compile with
 
 `./sensing-sim.ce`
 
-The code will loop through parameterisations and print lines to the screen periodically to demonstrate output. It should take maybe 10 minutes on a 2024 machine. It will produce a collection of time series snapshots and a large file (~150Mb) `redo-out-rk.csv` containing statistics of all the parameter sets. This is used by `sensing-plot.R` to produce figures.
+The code will loop through parameterisations and print lines to the screen periodically to demonstrate output. It should take maybe 45 minutes on a 2024 machine. It will produce a collection of time series snapshots and a large file (~380Mb) `redo-out-rk.csv` containing statistics of all the parameter sets. This is used by `sensing-plot.R` to produce figures.
 
